@@ -6,3 +6,144 @@ name: CI/CD
 on:
   # Allows you to run this workflow manually from the Actions tab
   [workflow_dispatch, pull_request, push]
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+
+      - uses: actions/checkout@v2
+ 
+      # action can be useful if you want to add emulation support with QEMU to be able to build against more platforms.
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      # action will create and boot a builder using by default the docker-container builder driver. This is not required but recommended using it to be able to build multi-platform images, export cache, etc.
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Generate main build number
+        id: buildnumbermain
+        uses: einaregilsson/build-number@v3
+        with:
+          token: ${{ secrets.GIT_TOKEN }}
+          prefix: ${{ secrets.MAIN_APP_PREFIX }}
+
+      # log in against a Docker registry.
+      - name: Login to DockerHub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # Build and push
+      - name: Build and push
+        uses: docker/build-push-action@v3
+        env:
+          IMAGE_TAG: ${{ steps.buildnumbermain.outputs.build_number }}
+        with:
+          push: true
+          tags: sarasagunwardana/py-barcode:$IMAGE_TAG,sarasagunwardana/py-barcode:latest
+
+  deploy-staging:
+    needs: [build]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: 
+      name: staging
+      url: http://staging.int.foo.com
+
+    steps:
+
+      - uses: actions/checkout@v2
+
+
+      - name: Run a one-line script
+        run: echo Hello, world!
+
+      - name: Run a multi-line script
+        run: |
+          echo Add other actions to build,
+          echo test, and deploy your project.
+
+  test-site:
+    needs: [deploy-staging]
+    runs-on: ubuntu-latest
+    name: Test on ${{ matrix.browser }}
+    strategy:
+      matrix:
+        browser: ['edge', 'chrome', 'mozilla']
+    steps:
+      - name: Run a one-line script
+        run: echo Hello, world!
+
+      - name: Run a multi-line script
+        run: |
+          echo Add other actions to build,
+          echo test, and deploy your project.
+  
+  deploy-development:
+    needs: [test-site]
+    if: github.ref == 'refs/heads/development'
+
+    runs-on: ubuntu-latest
+    environment: 
+      name: development
+      url: http://www.dev.foo.com
+
+    steps:
+
+      - uses: actions/checkout@v2
+
+      - name: Run a one-line script
+        run: echo Hello, world development!
+
+      - name: Run a multi-line script
+        run: |
+          echo Add other actions to build development,
+          echo test, and deploy your project development.
+          echo $IMAGE_TAG
+
+  deploy-production:
+    needs: [test-site]
+    if: github.ref == 'refs/heads/main'
+
+    runs-on: ubuntu-latest
+    environment: 
+      name: production
+      url: http://www.foo.com
+
+    steps:
+
+      - uses: actions/checkout@v2
+
+      - name: Run a one-line script
+        run: echo Hello, world!
+
+      - name: Run a multi-line script
+        run: |
+          echo Add other actions to build,
+          echo test, and deploy your project.
+
+  deploy-review:
+    needs: [build]
+    if: github.event_name == 'pull_request'
+
+    runs-on: ubuntu-latest
+    environment: 
+      name: review
+      url: http://review-23.lab.foo.com
+
+    steps:
+
+      - uses: actions/checkout@v2
+
+      - name: Run a one-line script
+        run: echo Hello, world! review
+
+      - name: Run a multi-line script
+        run: |
+          echo Add other actions to build, review
+          echo test, and deploy your project. review
+          echo $IMAGE_TAG
