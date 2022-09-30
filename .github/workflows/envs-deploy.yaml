@@ -40,11 +40,11 @@ jobs:
       # Build and push
       - name: Build and push
         uses: docker/build-push-action@v3
-        env:
-          IMAGE_TAG: ${{ steps.buildnumbermain.outputs.build_number }}
+        # env:
+        #   IMAGE_TAG: ${{ steps.buildnumbermain.outputs.build_number }}
         with:
           push: true
-          tags: sarasagunwardana/py-barcode:$IMAGE_TAG,sarasagunwardana/py-barcode:latest
+          tags: sarasagunwardana/py-barcode:test,sarasagunwardana/py-barcode:latest
 
   deploy-staging:
     needs: [build]
