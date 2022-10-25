@@ -6,3 +6,55 @@ name: CI/CD
 on:
   # Allows you to run this workflow manually from the Actions tab
   [workflow_dispatch, pull_request, push]
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+
+      - uses: actions/checkout@v2
+ 
+      # action can be useful if you want to add emulation support with QEMU to be able to build against more platforms.
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      # action will create and boot a builder using by default the docker-container builder driver. This is not required but recommended using it to be able to build multi-platform images, export cache, etc.
+      - name: Set up Docker Buildx
+        run: | 
+          echo "build done"
+          
+  deploy-review:
+    needs: [build]
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+
+      - uses: actions/checkout@v2
+
+      - name: Run a one-line script
+        run: echo Hello, world!
+
+      - name: Run a multi-line script
+        run: |
+          echo Add other actions to build,
+          echo test, and deploy your project.
+
+  deploy-production:
+    needs: [build]
+    if: github.ref == 'refs/heads/main'
+
+    runs-on: ubuntu-latest
+    steps:
+
+      - uses: actions/checkout@v2
+
+      - name: Run a one-line script
+        run: echo Hello, world!
+
+      - name: Run a multi-line script
+        run: |
+          echo Add other actions to build,
+          echo test, and deploy your project.
+
+  
